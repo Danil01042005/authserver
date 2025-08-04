@@ -1,0 +1,10 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: example-service
+
+logging:
+  level:
+    ru.lms.exampleservice: DEBUG 
