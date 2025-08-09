@@ -1,23 +1,25 @@
 package ru.lms.gatewayauth.service;
 
 
+import lombok.RequiredArgsConstructor;
 import ru.lms.gatewayauth.model.User;
 import ru.lms.gatewayauth.repository.UserRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
 
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private PasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
     public User save(User user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
+        if (user.getRole() == null || user.getRole().isBlank()) {
+            user.setRole("ROLE_USER");
+        }
         return userRepository.save(user);
     }
 

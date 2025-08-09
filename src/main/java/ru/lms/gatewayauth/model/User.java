@@ -16,8 +16,6 @@ import lombok.Setter;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Getter
-@Setter
 public class User {
 
     @Id
@@ -26,6 +24,5 @@ public class User {
     private String username;
     private String password;
     private String role;
-    private String email;
     
 }
