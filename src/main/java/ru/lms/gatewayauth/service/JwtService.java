@@ -1,31 +1,27 @@
 package ru.lms.gatewayauth.service;
 
 
-import ru.lms.gatewayauth.model.AuthenticationRequest;
+import lombok.RequiredArgsConstructor;
 import ru.lms.gatewayauth.util.JwtUtil;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
 @Service
+@RequiredArgsConstructor
 public class JwtService {
 
-    @Autowired
-    private AuthenticationManager authenticationManager;
+    private final AuthenticationManager authenticationManager;
 
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
+    private final CustomUserDetailsService userDetailsService;
 
-    @Autowired
-    private JwtUtil jwtUtil;
+    private final JwtUtil jwtUtil;
 
-    public String createJwtToken(AuthenticationRequest authenticationRequest) throws Exception {
-        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(
-                authenticationRequest.getUsername(), authenticationRequest.getPassword()));
+    public String createJwtToken(String username, String password) throws Exception {
+        authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username, password));
 
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         return jwtUtil.generateToken(userDetails);
     }
 }

@@ -2,29 +2,35 @@ package ru.lms.gatewayauth.controller;
 
 
 
+import lombok.RequiredArgsConstructor;
 import ru.lms.gatewayauth.model.AuthenticationRequest;
 import ru.lms.gatewayauth.model.AuthenticationResponse;
 import ru.lms.gatewayauth.model.User;
 import ru.lms.gatewayauth.service.JwtService;
 import ru.lms.gatewayauth.service.UserService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
-    @Autowired
-    private JwtService jwtService;
+    private final JwtService jwtService;
 
-    @Autowired
-    private UserService userService;
+    private final UserService userService;
 
     @PostMapping("/login")
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) throws Exception {
-        final String jwt = jwtService.createJwtToken(authenticationRequest);
-        return ResponseEntity.ok(new AuthenticationResponse(jwt));
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) {
+        try {
+            final String jwt = jwtService.createJwtToken(
+                    authenticationRequest.getUsername(),
+                    authenticationRequest.getPassword()
+            );
+            return ResponseEntity.ok(new AuthenticationResponse(jwt));
+        } catch (Exception ex) {
+            return ResponseEntity.status(401).body("Invalid username or password.");
+        }
     }
 
     @PostMapping("/signup")
