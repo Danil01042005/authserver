@@ -41,7 +41,11 @@ dependencies {
 	annotationProcessor 'org.projectlombok:lombok'
 	
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
+<<<<<<< HEAD
     runtimeOnly 'org.postgresql:postgresql'
+=======
+	runtimeOnly 'org.postgresql:postgresql'
+>>>>>>> 073632fdbe41cc386ad69073cc65f2fa58aea848
 
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testCompileOnly 'org.projectlombok:lombok'
