@@ -29,4 +29,9 @@ spring:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
 
 jwt:
-  secret: mySecretKey
+  # HS256 requires a key >= 256 bits (32+ chars). Use env var in prod.
+  secret: ${JWT_SECRET:this-is-a-very-long-and-secure-jwt-secret-key-32b-min}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
