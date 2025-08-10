@@ -1,14 +1,8 @@
 package ru.lms.gatewayauth.model;
 
+import lombok.Value;
+
+@Value
 public class AuthenticationResponse {
-
-    private final String jwt;
-
-    public AuthenticationResponse(String jwt) {
-        this.jwt = jwt;
-    }
-
-    public String getJwt() {
-        return jwt;
-    }
+    String jwt;
 }
