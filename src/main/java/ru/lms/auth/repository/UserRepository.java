@@ -1,6 +1,6 @@
-package ru.lms.gatewayauth.repository;
+package ru.lms.auth.repository;
 
-import ru.lms.gatewayauth.model.User;
+import ru.lms.auth.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

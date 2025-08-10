@@ -1,9 +1,9 @@
-package ru.lms.gatewayauth.service;
+package ru.lms.auth.service;
 
 
 import lombok.RequiredArgsConstructor;
-import ru.lms.gatewayauth.model.User;
-import ru.lms.gatewayauth.repository.UserRepository;
+import ru.lms.auth.model.User;
+import ru.lms.auth.repository.UserRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 

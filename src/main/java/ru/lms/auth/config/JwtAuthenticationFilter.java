@@ -1,11 +1,11 @@
-package ru.lms.gatewayauth.config;
+package ru.lms.auth.config;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import ru.lms.gatewayauth.util.JwtUtil;
+import ru.lms.auth.util.JwtUtil;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -55,6 +55,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return true;
         }
         String path = request.getRequestURI();
-        return path.startsWith("/auth/");
+        String method = request.getMethod();
+        boolean isLogin = "POST".equalsIgnoreCase(method) && "/auth/login".equals(path);
+        boolean isSignup = "POST".equalsIgnoreCase(method) && "/auth/signup".equals(path);
+        return isLogin || isSignup;
     }
 }

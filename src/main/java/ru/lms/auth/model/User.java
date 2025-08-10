@@ -1,4 +1,4 @@
-package ru.lms.gatewayauth.model;
+package ru.lms.auth.model;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;

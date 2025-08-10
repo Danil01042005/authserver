@@ -1,13 +1,13 @@
-package ru.lms.gatewayauth.controller;
+package ru.lms.auth.controller;
 
 
 
 import lombok.RequiredArgsConstructor;
-import ru.lms.gatewayauth.model.AuthenticationRequest;
-import ru.lms.gatewayauth.model.AuthenticationResponse;
-import ru.lms.gatewayauth.model.User;
-import ru.lms.gatewayauth.service.JwtService;
-import ru.lms.gatewayauth.service.UserService;
+import ru.lms.auth.model.AuthenticationRequest;
+import ru.lms.auth.model.AuthenticationResponse;
+import ru.lms.auth.model.User;
+import ru.lms.auth.service.JwtService;
+import ru.lms.auth.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 

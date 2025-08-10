@@ -1,13 +1,13 @@
-package ru.lms.gatewayauth;
+package ru.lms.auth;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class GatewayauthApplication {
+public class AuthApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(GatewayauthApplication.class, args);
+		SpringApplication.run(AuthApplication.class, args);
 	}
 
 }

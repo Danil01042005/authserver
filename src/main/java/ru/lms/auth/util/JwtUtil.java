@@ -1,4 +1,4 @@
-package ru.lms.gatewayauth.util;
+package ru.lms.auth.util;
 
 
 import io.jsonwebtoken.Claims;

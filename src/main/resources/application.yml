@@ -1,9 +1,9 @@
 server:
-  port: 8080
+  port: 8081
 
 spring:
   application:
-    name: api-gateway
+    name: auth-service
 
   datasource:
     url: jdbc:postgresql://localhost:5432/jwt
@@ -18,15 +18,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-  cloud:
-    gateway:
-      routes:
-        - id: example-service
-          uri: http://localhost:8081
-          predicates:
-            - Path=/example/**
-      default-filters:
-        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+  # gateway config moved to separate api-gateway service
 
 jwt:
   # HS256 requires a key >= 256 bits (32+ chars). Use env var in prod.
