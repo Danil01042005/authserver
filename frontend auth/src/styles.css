@@ -1,0 +1,42 @@
+:root {
+	--bg: #0b0d0f;
+	--panel: #121418;
+	--muted: #9aa4b2;
+	--primary: #1f9cf0;
+	--primary-700: #147fc7;
+	--ok: #2bb673;
+	--danger: #e05252;
+	--text: #e6e6e6;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+
+.container { max-width: 960px; margin: 0 auto; padding: 24px; }
+.panel { background: var(--panel); border: 1px solid #1c1f24; border-radius: 12px; padding: 24px; }
+.row { display: flex; gap: 16px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 8px; }
+.spacer { height: 16px; }
+
+a { color: var(--primary); text-decoration: none; }
+a:hover { color: var(--primary-700); }
+
+input, button { height: 40px; border-radius: 10px; border: 1px solid #2a2f36; background: #0f1114; color: var(--text); padding: 0 12px; }
+input:focus { outline: 2px solid var(--primary-700); border-color: var(--primary-700); }
+button { background: var(--primary); border-color: var(--primary); font-weight: 600; cursor: pointer; }
+button:hover { background: var(--primary-700); }
+button.ghost { background: transparent; }
+small.muted { color: var(--muted); }
+
+.header { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; }
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 16px; }
+.brand-badge { width: 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: #0d1117; border: 1px solid #1f2329; }
+
+.form { display: grid; gap: 14px; }
+.form .row { justify-content: space-between; }
+.form label { font-size: 12px; color: var(--muted); }
+.error { color: var(--danger); }
+.success { color: var(--ok); }
+
+

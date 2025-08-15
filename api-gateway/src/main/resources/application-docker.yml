@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: auth-service
+              uri: http://auth-service:8081
+              predicates:
+                - name: Path
+                  args:
+                    pattern: /auth/**
+          default-filters:
+            - name: DedupeResponseHeader
+              args:
+                name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
+server:
+  port: 8080
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

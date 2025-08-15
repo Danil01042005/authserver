@@ -1,0 +1,33 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Java / Gradle
+.gradle/
+build/
+bin/
+out/
+**/*.log
+
+# Spring Boot
+*.jar
+*.war
+*.iml
+
+# Node / Frontend
+frontend auth/node_modules/
+frontend auth/dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+
