@@ -92,11 +92,12 @@
    - Если заголовка нет/токен просрочен/некорректен → `401`, до сервиса запрос не дойдёт
    - Если токен валиден → шлюз проксирует запрос в сервис; ответы `2xx/4xx/5xx` сервиса возвращаются клиенту без изменений
  - Куда уходит запрос после шлюза:
-   - По совпадению `Path` из `spring.cloud.gateway.routes` (пример: `Path=/example/**` → `http://localhost:8081`)
-   - Путь сохраняется: `GET /example/hello` → `http://localhost:8081/example/hello`
+   - В текущей конфигурации маршрут: `Path=/auth/**` → `http://auth-service:8081`
+   - Путь сохраняется: `POST /auth/login` → `http://auth-service:8081/auth/login`
  - Что делает шлюз:
-   - Валидирует JWT, настраивает CORS, удаляет дубликаты заголовков CORS
+   - Настраивает CORS и удаляет дубликаты CORS-заголовков (DedupeResponseHeader)
    - Не изменяет тело/статус ответа сервиса, не вмешивается в бизнес-логику
+   - Проверка JWT выполняется в самом auth-service (на шлюзе валидатор JWT не настроен)
  - Что сейчас не делает (из коробки):
    - Авторизация по ролям; rate limiting; трейсинг — их можно добавить позже
 
@@ -157,6 +158,12 @@ Response 401: "Invalid username or password."
    - Frontend: `http://localhost:3030`
    - API Gateway: `http://localhost:8080`
    - Auth Service: `http://localhost:8081`
+
+### Документация API (Swagger/OpenAPI)
+- JSON спецификация: `http://localhost:8081/v3/api-docs`
+- Swagger UI: `http://localhost:8081/swagger-ui/index.html`
+
+Примечание: доступ к Swagger через gateway по пути `/auth/swagger-ui/...` сейчас не работает, так как маршрут `/auth/**` не удаляет префикс. Чтобы открыть UI через gateway, добавьте фильтр удаления префикса (StripPrefix) в конфигурацию маршрута.
 
 4. Ручной запуск модулей (опционально)
    - `api-gateway`/`auth-service`: `./gradlew bootRun`
