@@ -1,10 +1,20 @@
-# Multi-stage build for Vite React app served by Nginx
-
 FROM node:20-alpine AS build
 WORKDIR /app
 
+ARG NPM_REGISTRY=https://registry.npmmirror.com/
+ARG HTTP_PROXY
+ARG HTTPS_PROXY
+ENV npm_config_registry=$NPM_REGISTRY \
+    npm_config_fetch_timeout=120000 \
+    npm_config_fetch_retries=5 \
+    npm_config_https_proxy=$HTTPS_PROXY \
+    npm_config_proxy=$HTTP_PROXY
+
 COPY package*.json ./
-RUN npm install --legacy-peer-deps --no-audit --no-fund
+RUN npm config set registry "$NPM_REGISTRY" \
+    && if [ -n "$HTTP_PROXY" ]; then npm config set proxy "$HTTP_PROXY"; npm config set http-proxy "$HTTP_PROXY"; fi \
+    && if [ -n "$HTTPS_PROXY" ]; then npm config set https-proxy "$HTTPS_PROXY"; fi \
+    && npm install --legacy-peer-deps --no-audit --no-fund
 
 COPY . .
 ARG VITE_API_BASE

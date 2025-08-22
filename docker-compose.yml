@@ -30,10 +30,12 @@ services:
       SPRING_PROFILES_ACTIVE: docker
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET:-this-is-a-very-long-and-secure-jwt-secret-key-32b-min}
+      SPRINGDOC_SWAGGER_UI_ENABLED: "true"
     ports:
       - "8081:8081"
     networks:
       - backend
+      - public
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
@@ -69,6 +71,9 @@ services:
       context: "./frontend auth"
       args:
         VITE_API_BASE: http://localhost:8080
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com/}
+        HTTP_PROXY: ${HTTP_PROXY:-}
+        HTTPS_PROXY: ${HTTPS_PROXY:-}
     image: auth-frontend:local
     depends_on:
       api-gateway:

@@ -12,10 +12,16 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 
 @RestController
 @RequestMapping("/auth")
 @RequiredArgsConstructor
+@Tag(name = "Auth", description = "Аутентификация и управление пользователями")
 public class AuthController {
 
     private final JwtService jwtService;
@@ -23,6 +29,11 @@ public class AuthController {
     private final UserService userService;
 
     @PostMapping("/login")
+    @Operation(summary = "Логин", description = "Аутентификация пользователя и выдача JWT")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Успех"),
+        @ApiResponse(responseCode = "401", description = "Неверные данные")
+    })
     public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) {
         try {
             final String jwt = jwtService.createJwtToken(
@@ -36,6 +47,11 @@ public class AuthController {
     }
 
     @PostMapping("/signup")
+    @Operation(summary = "Регистрация", description = "Создание нового пользователя")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Пользователь зарегистрирован"),
+        @ApiResponse(responseCode = "400", description = "Имя пользователя занято")
+    })
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         if (userService.findByUsername(user.getUsername()).isPresent()) {
             return ResponseEntity.badRequest().body("Username is already taken.");
@@ -45,6 +61,12 @@ public class AuthController {
     }
 
     @GetMapping("/me")
+    @Operation(summary = "Текущий пользователь", description = "Информация о текущем пользователе",
+        security = { @SecurityRequirement(name = "bearerAuth") })
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Успех"),
+        @ApiResponse(responseCode = "401", description = "Неавторизован")
+    })
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).body("Unauthorized");
