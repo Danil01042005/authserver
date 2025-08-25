@@ -6,6 +6,26 @@ spring:
       server:
         webmvc:
           routes:
+            - id: auth-swagger-ui
+              uri: http://auth-service:8081
+              predicates:
+                - name: Path
+                  args:
+                    pattern: /auth/swagger-ui/**
+              filters:
+                - name: StripPrefix
+                  args:
+                    parts: 1
+            - id: auth-api-docs
+              uri: http://auth-service:8081
+              predicates:
+                - name: Path
+                  args:
+                    pattern: /auth/v3/api-docs/**
+              filters:
+                - name: StripPrefix
+                  args:
+                    parts: 1
             - id: auth-service
               uri: http://auth-service:8081
               predicates:
@@ -20,8 +40,9 @@ server:
   port: 8080
 logging:
   level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.web: DEBUG
+    root: INFO
+    org.springframework.cloud.gateway: INFO
+    org.springframework.web: INFO
 
 management:
   endpoints:
