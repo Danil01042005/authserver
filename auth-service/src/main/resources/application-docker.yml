@@ -25,7 +25,7 @@ logging:
   level:
     root: INFO
     org.springframework.security: INFO
-    ru.lms.auth.config.JwtAuthenticationFilter: INFO
+    ru.auth.config.JwtAuthenticationFilter: INFO
 
 management:
   endpoints:

@@ -189,7 +189,7 @@ api-gateway/
 └── Dockerfile (мультистейдж)
 
 auth-service/
-├── src/main/java/ru/lms/auth/
+├── src/main/java/ru/auth/
 │   ├── controller/AuthController.java (signup/login/me)
 │   ├── config/SecurityConfig.java (правила доступа)
 │   ├── config/JwtAuthenticationFilter.java (проверка JWT на своих эндпоинтах)
