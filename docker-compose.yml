@@ -68,7 +68,7 @@ services:
 
   frontend:
     build:
-      context: "./frontend auth"
+      context: "./frontend auth example"
       args:
         VITE_API_BASE: http://localhost:8080
         NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com/}
