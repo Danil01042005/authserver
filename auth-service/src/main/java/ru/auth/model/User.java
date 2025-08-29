@@ -24,6 +24,3 @@ public class User {
     private String role;
     
 }
-
-
-
