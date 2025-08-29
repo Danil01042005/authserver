@@ -11,12 +11,12 @@ export const AppLayout: React.FC = () => {
       <header className="header">
         <div className="brand">
           <div className="brand-badge">🔒</div>
-          Secure LMS
+          Secure Auth
         </div>
         <nav className="row" role="navigation">
           <Link to="/">Home</Link>
           {isAuthenticated ? (
-            <button className="ghost" onClick={() => { logout(); navigate('/'); }}>Logout</button>
+            <button className="ghost" onClick={async () => { await logout(); navigate('/'); }}>Logout</button>
           ) : (
             <>
               <Link to="/login">Login</Link>

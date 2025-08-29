@@ -2,7 +2,9 @@ package ru.auth.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 import ru.auth.model.RefreshToken;
 import ru.auth.model.User;
 import ru.auth.repository.RefreshTokenRepository;
@@ -14,6 +16,7 @@ import java.util.Base64;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class RefreshTokenService {
 
     private final RefreshTokenRepository refreshTokenRepository;
@@ -56,4 +59,17 @@ public class RefreshTokenService {
         refreshTokenRepository.save(token);
     }
 
+    public long purgeExpired() {
+        return refreshTokenRepository.deleteByExpiresAtBefore(Instant.now());
+    }
+
+    @Scheduled(cron = "0 0 * * * *")
+    public void purgeExpiredJob() {
+        long deleted = purgeExpired();
+        if (deleted > 0) {
+            log.info("Purged {} expired refresh tokens", deleted);
+        } else {
+            log.debug("No expired refresh tokens to purge");
+        }
+    }
 }
