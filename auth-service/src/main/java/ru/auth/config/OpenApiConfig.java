@@ -32,7 +32,7 @@ public class OpenApiConfig {
 						.license(new License().name("MIT"))
 						.contact(new Contact().name("Team")))
 				.servers(List.of(
-					new Server().url("http://localhost:8081").description("Local Dev")
+					new Server().url("/auth").description("Via Gateway")
 				));
 	}
 }

@@ -13,6 +13,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.util.matcher.OrRequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -25,6 +28,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
 
     private final UserDetailsService userDetailsService;
+
+    private final RequestMatcher skipMatcher = new OrRequestMatcher(
+            new RegexRequestMatcher("^/.*$", "OPTIONS"),
+            new RegexRequestMatcher("^/auth/login$", "POST"),
+            new RegexRequestMatcher("^/auth/signup$", "POST"),
+            new RegexRequestMatcher("^/auth/refresh$", "POST"),
+            new RegexRequestMatcher("^/auth/logout$", "POST")
+    );
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
@@ -61,17 +72,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
-        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
-            return true;
-        }
-        String path = request.getRequestURI();
-        String method = request.getMethod();
-        boolean isLogin = "POST".equalsIgnoreCase(method) && "/auth/login".equals(path);
-        boolean isSignup = "POST".equalsIgnoreCase(method) && "/auth/signup".equals(path);
-        boolean isRefresh = "POST".equalsIgnoreCase(method) && "/auth/refresh".equals(path);
-        boolean skip = isLogin || isSignup || isRefresh;
+        boolean skip = skipMatcher.matches(request);
         if (skip) {
-            log.debug("JwtAuthenticationFilter: skipping for {} {}", method, path);
+            log.debug("JwtAuthenticationFilter: skipping for {} {}", request.getMethod(), request.getRequestURI());
         }
         return skip;
     }

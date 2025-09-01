@@ -15,8 +15,8 @@ out/
 *.iml
 
 # Node / Frontend
-frontend auth/node_modules/
-frontend auth/dist/
+frontend auth example/node_modules/
+frontend auth example/dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
