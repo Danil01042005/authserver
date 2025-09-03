@@ -26,14 +26,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
     }
 
-    @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<Map<String, Object>> handleConstraintViolation(ConstraintViolationException ex) {
-        Map<String, Object> body = new HashMap<>();
-        body.put("error", "validation_error");
-        body.put("message", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
-    }
-
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneric(Exception ex) {
         Map<String, Object> body = new HashMap<>();
