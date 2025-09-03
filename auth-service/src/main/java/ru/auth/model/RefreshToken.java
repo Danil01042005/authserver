@@ -10,7 +10,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name = "refresh_tokens", indexes = {
-        @Index(name = "idx_refresh_token_token", columnList = "token", unique = true)
+        @Index(name = "idx_refresh_token_hash", columnList = "token_hash", unique = true)
 })
 @Data
 @NoArgsConstructor
@@ -26,8 +26,11 @@ public class RefreshToken {
     @JoinColumn(name = "user_id")
     private User user;
 
-    @Column(nullable = false, unique = true, length = 255)
+    @Transient
     private String token;
+
+    @Column(name = "token_hash", nullable = false, unique = true, length = 128)
+    private String tokenHash;
 
     @Column(nullable = false)
     private Instant expiresAt;

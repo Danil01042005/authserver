@@ -1,10 +1,16 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Link, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../utils/auth'
 
 export const AppLayout: React.FC = () => {
   const { isAuthenticated, logout } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    const onForcedLogout = () => navigate('/login')
+    window.addEventListener('auth:logout', onForcedLogout as any)
+    return () => window.removeEventListener('auth:logout', onForcedLogout as any)
+  }, [navigate])
 
   return (
     <div className="container">

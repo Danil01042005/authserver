@@ -17,17 +17,13 @@ const AuthContext = createContext<AuthContextType | null>(null)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 	const [jwt, setJwt] = useState<string | null>(() => localStorage.getItem('jwt'))
-	const [refreshToken, setRefreshToken] = useState<string | null>(() => localStorage.getItem('refresh'))
 
 	useEffect(() => {
 		if (jwt) localStorage.setItem('jwt', jwt)
 		else localStorage.removeItem('jwt')
 	}, [jwt])
 
-	useEffect(() => {
-		if (refreshToken) localStorage.setItem('refresh', refreshToken)
-		else localStorage.removeItem('refresh')
-	}, [refreshToken])
+	// refresh хранится в httpOnly cookie, не в localStorage
 
 	const tokenPayload = useMemo(() => {
 		if (!jwt) return null
@@ -37,32 +33,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 	const login = async ({ username, password }: LoginDto) => {
 		const res = await api.post('/auth/login', { username, password })
 		if (!res.ok) throw new Error(await res.text())
-		const data = await res.json() as { jwt: string; refreshToken?: string }
+		const data = await res.json() as { jwt: string }
 		setJwt(data.jwt)
-		if (data.refreshToken) setRefreshToken(data.refreshToken)
 	}
 
 	const refresh = async () => {
-		if (!refreshToken) throw new Error('No refresh token')
-		const res = await api.post('/auth/refresh', { refreshToken })
+		const res = await api.post('/auth/refresh')
 		if (!res.ok) throw new Error(await res.text())
-		const data = await res.json() as { jwt: string; refreshToken?: string }
+		const data = await res.json() as { jwt: string }
 		setJwt(data.jwt)
-		if (data.refreshToken) setRefreshToken(data.refreshToken)
 	}
 
 
 	const logout = async () => {
 		try {
-			if (refreshToken) {
-				await api.post('/auth/logout', { refreshToken })
-			}
+			await api.post('/auth/logout')
 		} catch {
 			// ignore
 		} finally {
-			setJwt(null); setRefreshToken(null)
+			setJwt(null)
 		}
 	}
+
+	useEffect(() => {
+		const onJwt = (e: Event) => {
+			const detail = (e as CustomEvent<string | null>).detail
+			setJwt(detail ?? null)
+		}
+		const onLogout = () => setJwt(null)
+		window.addEventListener('auth:jwt' as any, onJwt as any)
+		window.addEventListener('auth:logout', onLogout as any)
+		return () => {
+			window.removeEventListener('auth:jwt' as any, onJwt as any)
+			window.removeEventListener('auth:logout', onLogout as any)
+		}
+	}, [])
 
 	const value: AuthContextType = {
 		isAuthenticated: !!jwt,

@@ -19,6 +19,7 @@ public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @jakarta.persistence.Column(unique = true, nullable = false, length = 64)
     private String username;
     private String password;
     private String role;

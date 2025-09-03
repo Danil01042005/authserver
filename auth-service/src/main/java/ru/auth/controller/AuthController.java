@@ -83,7 +83,7 @@ public class AuthController {
 	@ApiResponses({
 			@ApiResponse(responseCode = "200", description = "Успех: независимо от состояния refresh")
 	})
-	public ResponseEntity<?> logout(@RequestBody(required = false) RefreshRequest body, @CookieValue(name = "refresh_token", required = false) String cookieToken, HttpServletRequest request) {
+	public ResponseEntity<?> logout(@Valid @RequestBody(required = false) RefreshRequest body, @CookieValue(name = "refresh_token", required = false) String cookieToken, HttpServletRequest request) {
 		try {
 			String incoming = cookieToken != null && !cookieToken.isBlank() ? cookieToken : (body != null ? body.getRefreshToken() : null);
 			if (incoming != null && !incoming.isBlank()) {
@@ -92,7 +92,7 @@ public class AuthController {
 			}
 		} catch (Exception ignored) {
 		}
-		// delete cookie
+
 		ResponseCookie delete = ResponseCookie.from("refresh_token", "")
 				.path("/auth")
 				.maxAge(Duration.ZERO)
@@ -111,7 +111,7 @@ public class AuthController {
 			@ApiResponse(responseCode = "200", description = "Успех: возвращены новый JWT и новый refresh"),
 			@ApiResponse(responseCode = "401", description = "Недействительный или повторно использованный refresh")
 	})
-	public ResponseEntity<?> refresh(@RequestBody(required = false) RefreshRequest body, @CookieValue(name = "refresh_token", required = false) String cookieToken, HttpServletRequest request) {
+	public ResponseEntity<?> refresh(@Valid @RequestBody(required = false) RefreshRequest body, @CookieValue(name = "refresh_token", required = false) String cookieToken, HttpServletRequest request) {
 		String refreshToken = null;
 		if (cookieToken != null && !cookieToken.isBlank()) {
 			refreshToken = cookieToken;
