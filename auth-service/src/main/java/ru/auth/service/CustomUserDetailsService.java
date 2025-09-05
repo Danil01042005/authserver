@@ -2,7 +2,7 @@ package ru.auth.service;
 
 
 import lombok.RequiredArgsConstructor;
-import ru.auth.model.User;
+import ru.auth.entity.User;
 import ru.auth.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;

@@ -1,4 +1,4 @@
-package ru.auth.model;
+package ru.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -38,7 +38,5 @@ public class RefreshToken {
     @Column(nullable = false)
     private boolean revoked;
 }
-
-
 
 

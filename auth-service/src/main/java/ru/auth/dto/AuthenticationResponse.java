@@ -1,4 +1,4 @@
-package ru.auth.model;
+package ru.auth.dto;
 
 import lombok.Value;
 
@@ -6,6 +6,5 @@ import lombok.Value;
 public class AuthenticationResponse {
     String jwt;
 }
-
 
 

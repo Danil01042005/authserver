@@ -1,4 +1,4 @@
-package ru.auth.model;
+package ru.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -16,6 +16,5 @@ public class AuthenticationRequest {
     private String password;
 
 }
-
 
 

@@ -5,8 +5,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
-import ru.auth.model.RefreshToken;
-import ru.auth.model.User;
+import ru.auth.entity.RefreshToken;
+import ru.auth.entity.User;
 import ru.auth.repository.RefreshTokenRepository;
 
 import java.security.SecureRandom;

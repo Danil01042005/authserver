@@ -1,4 +1,4 @@
-package ru.auth.model;
+package ru.auth.entity;
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -23,5 +23,6 @@ public class User {
     private String username;
     private String password;
     private String role;
-    
 }
+
+
