@@ -29,13 +29,9 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: docker
       DB_PASSWORD: ${DB_PASSWORD:-postgres}
-      JWT_SECRET: ${JWT_SECRET:-this-is-a-very-long-and-secure-jwt-secret-key-32b-min}
       SPRINGDOC_SWAGGER_UI_ENABLED: "true"
-    ports:
-      - "8081:8081"
     networks:
       - backend
-      - public
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8081/actuator/health || exit 1"]
       interval: 10s
@@ -60,6 +56,25 @@ services:
       - public
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://localhost:8080/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    restart: unless-stopped
+
+  example-under-armor-service:
+    build:
+      context: ./example-under-armor-service
+    image: example-under-armor-service:local
+    depends_on:
+      auth-service:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8082/actuator/health || exit 1"]
       interval: 10s
       timeout: 3s
       retries: 10

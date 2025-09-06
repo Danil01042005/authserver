@@ -15,6 +15,10 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+              - name: AddResponseHeader
+                args:
+                  name: X-Service
+                  value: auth-service
           - id: auth-api-docs
             uri: http://auth-service:8081
             predicates:
@@ -25,12 +29,32 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+              - name: AddResponseHeader
+                args:
+                  name: X-Service
+                  value: auth-service
           - id: auth-service
             uri: http://auth-service:8081
             predicates:
               - name: Path
                 args:
                   pattern: /auth/**
+            filters:
+              - name: AddResponseHeader
+                args:
+                  name: X-Service
+                  value: auth-service
+          - id: example-under-armor-service
+            uri: http://example-under-armor-service:8082
+            predicates:
+              - name: Path
+                args:
+                  pattern: /example-under-armor/**
+            filters:
+              - name: AddResponseHeader
+                args:
+                  name: X-Service
+                  value: example-under-armor-service
         default-filters:
           - name: DedupeResponseHeader
             args:

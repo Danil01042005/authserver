@@ -53,6 +53,7 @@ async function request(method: string, path: string, options: RequestInit = {}) 
 		return fetch(`${API_BASE}${path}`, { ...options, method, headers, credentials: 'include' })
 	}
 
+
 	let res = await attempt()
 	if (res.status !== 401 || isAuthPath(path)) {
 		return res
@@ -66,6 +67,8 @@ async function request(method: string, path: string, options: RequestInit = {}) 
 	} catch {
 		setJwt(null)
 		window.dispatchEvent(new CustomEvent('auth:logout'))
+		// Редирект на логин при неуспешной повторной попытке/refresh
+		try { if (!isAuthPath(path)) window.location.href = '/login' } catch {}
 		return res
 	}
 }
