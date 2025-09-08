@@ -34,7 +34,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             new RegexRequestMatcher("^/auth/login$", "POST"),
             new RegexRequestMatcher("^/auth/signup$", "POST"),
             new RegexRequestMatcher("^/auth/refresh$", "POST"),
-            new RegexRequestMatcher("^/auth/logout$", "POST")
+            new RegexRequestMatcher("^/auth/logout$", "POST"),
+            new RegexRequestMatcher("^/\\.well-known/jwks\\.json$", "GET")
     );
 
     @Override
