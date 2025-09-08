@@ -2,36 +2,43 @@
 
 Цель — унифицировать точку входа, CORS и маршрутизацию. В этом репозитории проект разнесён по сервисам:
 
-- api-gateway — маршрутизация и CORS (порт 8080)
-- auth-service — регистрация/логин и проверка JWT на своих эндпоинтах (порт 8081, PostgreSQL)
-- frontend auth — SPA (порт 3030 через Nginx)
+- **api-gateway** — маршрутизация и CORS (порт 8080)
+- **auth-service** — регистрация/логин и проверка JWT (порт 8081, PostgreSQL, RS256)
+- **example-under-armor-service** — пример защищённого бизнес-сервиса (порт 8082)
+- **frontend auth** — SPA (порт 3030 через Nginx)
+- **postgres** — база данных (порт 5432)
 
 ## Какую боль решает проект
 
-- **Единая точка входа (Ingress)**: все внешние вызовы заходят через `api-gateway`. Это устраняет разброс правил (CORS, заголовки, таймауты, лимиты) по сервисам и даёт O(1)‑место для изменений.
+- **Единая точка входа (Ingress)**: все внешние вызовы заходят через `api-gateway`. Это устраняет разброс правил (CORS, заголовки, таймауты) по сервисам и даёт O(1)‑место для изменений.
 - **Разделение ответственности**: `auth-service` становится доменом «Идентификация/Аутентификация», а бизнес‑сервисы остаются чистыми от login/signup и криптографии.
 - **Отсутствие дрейфа политик безопасности**: настройки кэширующих/безопасных заголовков, CORS и требования к авторизации живут централизованно и версионируются вместе.
 - **Zero‑trust кросс‑сервисный доступ**: каждый запрос несёт JWT; доверие не строится на сетевой зоне. Это упрощает горизонтальное масштабирование и деплой в смешанных средах.
-- **Наблюдаемость и контроль**: gateway — удобная точка для метрик, трейсинга, аудит‑логов, корреляционных ID и реакций (rate‑limit, circuit‑break).
+- **Наблюдаемость и контроль**: gateway — удобная точка для метрик, трейсинга, аудит‑логов и корреляционных ID.
 - **Развёртывание без боли**: docker‑first конфигурация, health‑checks, изолированные сети (`backend`/`public`) — проект поднимается одной командой.
 
 ## Расширяемость и потенциал
 
 - **Подключение новых сервисов (Gateway)**
   - добавляйте правила маршрутизации в `api-gateway/src/main/resources/application-docker.yml`
-  - пер‑роут политики: таймауты/ретраи, лимиты скорости, заголовки, size‑limits
+  - пер‑роут политики: таймауты/ретраи, заголовки, size‑limits
 - **Идентичность и авторизация (Auth‑service)**
   - роли/права через `SecurityConfig` (RBAC), возможность перейти к **scopes**/**claims‑based** (ABAC)
   - multi‑tenant: `tenant_id` в claims, фильтрация данных по тенанту
 - **Стойкость ключей и криптография**
-  - переход с HS256 → RS256/ES256, JWKS‑эндпоинт, `kid` и прозрачная ротация ключей
-  - хранение секрета/ключей во внешнем vault; автоматическая ротация и отзыв
+  - хранение секрета/ключей во внешнем vault (Vault, AWS KMS, Azure Key Vault)
+  - автоматическая ротация ключей по расписанию
+  - поддержка нескольких активных ключей для smooth rotation
+  - интеграция с HSM (Hardware Security Modules)
 - **Управление жизненным циклом токена**
-  - короткий `access` + `refresh` со ск скользящей ротацией; список отозванных (Redis)
   - device‑binding/аттестация клиента через дополнительные claims
+  - интеграция с Redis для хранения refresh токенов (высокая нагрузка)
+  - поддержка нескольких refresh токенов на устройство
+  - механизм отзыва всех токенов пользователя при подозрительной активности
 - **Наблюдаемость и SRE‑практики**
-  - OpenTelemetry trace/span, Prometheus метрики, алерты SLO (latency/error budget)
-  - structured‑logging с correlation‑id на gateway → end‑to‑end трассировка инцидентов
+  - алерты SLO (latency/error budget) на основе метрик
+  - distributed tracing с Jaeger для сложных запросов
+  - интеграция с ELK stack для продвинутого лог-анализа
 - **Надёжность на периметре**
   - circuit‑breaking, backoff‑retry, hedging, timeouts; защита от N+1 и штормов
   - blue/green, canary через маршрутизацию на gateway; A/B‑раскатки
@@ -41,71 +48,85 @@
 
 ## Сквозной поток запроса: от фронта до сервиса
 
-1. Фронтенд бьётся в `api-gateway:8080`.
-2. Запросы `/auth/**` проксируются в `auth-service:8081`:
+1. **Фронтенд** бьётся в `api-gateway:8080`
+2. **Запросы `/auth/**`** проксируются в `auth-service:8081`:
    - `POST /auth/signup` — регистрация пользователя в БД
-   - `POST /auth/login` — выдача JWT (HS256)
-3. Клиент хранит JWT и отправляет его в `Authorization: Bearer <token>`.
-4. Любые другие пути шлюз проксирует согласно правилам маршрутизации. Если цель — `auth-service`, то проверка JWT выполняется в его фильтре `JwtAuthenticationFilter`.
-5. Для других микросервисов за шлюзом можно:
-   - валидировать JWT в самих сервисах, или
-   - добавить централизованную проверку на уровне шлюза (по требованию).
+   - `POST /auth/login` — выдача JWT (RS256) + refresh token в httpOnly cookie
+   - `POST /auth/refresh` — ротация токенов (новый JWT + новый refresh)
+   - `POST /auth/logout` — отзыв refresh token
+3. **Клиент** хранит JWT в localStorage, refresh token в httpOnly cookie
+4. **Защищённые запросы**:
+   - `/auth/**` — JWT проверяется в `auth-service` через `JwtAuthenticationFilter`
+   - `/example-under-armor/**` — JWT валидируется через JWKS endpoint в `example-under-armor-service`
+5. **Автоматический refresh**: при 401 ошибки фронтенд автоматически обновляет токены
 
 ## Архитектура
 
 ```
-ЛОГИН (JWT выдаёт auth-service)
--------------------------------
-[Frontend]
-   |
+ЛОГИН + РЕГИСТРАЦИЯ (RS256 + Refresh Token)
+--------------------------------------------
+[Frontend :3030]  ← JWT в localStorage
+   |                    ← Refresh в httpOnly cookie
    |  POST /auth/login {username,password}
    v
-[API Gateway :8080]
+[API Gateway :8080]  ← Correlation ID filter
    |
-   |  route: /auth/** -> auth-service
+   |  route: /auth/** → auth-service:8081
    v
-[Auth Service :8081] -- verify creds --> [PostgreSQL]
-   |
-   |  <-- issue JWT (HS256)
+[Auth Service :8081] ← RS256 JWT generation
+   |                    ← BCrypt password hashing
+   |  ← validate credentials → [PostgreSQL :5432]
+   |  ← store refresh token hash
    v
-[API Gateway]  -->  { jwt }  -->  [Frontend]
+[API Gateway] → {jwt, refresh_cookie} → [Frontend]
 
-
-ЗАЩИЩЁННЫЙ ЗАПРОС
-------------------
-[Frontend]
-   |
-   |  GET /auth/me  +  Authorization: Bearer <jwt>
-   v
-[API Gateway :8080] --route--> [Auth Service :8081]
-                                   |
-                                   |  JwtAuthenticationFilter: validate(jwt)
-                                   v
-                                 200 {username, roles}
+ЗАЩИЩЁННЫЕ ЗАПРОСЫ (JWT + JWKS Validation)
+-------------------------------------------
+[Frontend] → POST /example-under-armor/me + Bearer <jwt>
+   ↓
+[API Gateway :8080] → route: /example-under-armor/** → example-under-armor-service:8082
+   ↓
+[Example Under Armor Service :8082] ← OAuth2ResourceServer
+                                       ← JWKS validation: /.well-known/jwks.json
+                                       ← auth-service:8081/.well-known/jwks.json
+   ↓
+200 {username, roles} → [API Gateway] → [Frontend]
 ```
- 
- - Логин:
-   - Вход: `POST /auth/login { username, password }`
-   - Выход: `200 { jwt }` при успехе; `401` при неверных данных; `400` при невалидном теле запроса
- - Защищённые запросы:
-   - Требуют `Authorization: Bearer <jwt>`
-   - Если заголовка нет/токен просрочен/некорректен → `401`, до сервиса запрос не дойдёт
-   - Если токен валиден → шлюз проксирует запрос в сервис; ответы `2xx/4xx/5xx` сервиса возвращаются клиенту без изменений
- - Куда уходит запрос после шлюза:
-   - В текущей конфигурации маршрут: `Path=/auth/**` → `http://auth-service:8081`
-   - Путь сохраняется: `POST /auth/login` → `http://auth-service:8081/auth/login`
- - Что делает шлюз:
-   - Настраивает CORS и удаляет дубликаты CORS-заголовков (DedupeResponseHeader)
-   - Не изменяет тело/статус ответа сервиса, не вмешивается в бизнес-логику
-   - Проверка JWT выполняется в самом auth-service (на шлюзе валидатор JWT не настроен)
- - Что сейчас не делает (из коробки):
-   - Авторизация по ролям; rate limiting; трейсинг — их можно добавить позже
+
+## Ключевые особенности архитектуры
+
+### 🔐 **Аутентификация (RS256 + Refresh Tokens)**
+- **JWT RS256**: Асимметричное шифрование (production-ready)
+- **Refresh Tokens**: В httpOnly cookies, хешируются SHA-256 в БД
+- **JWKS Endpoint**: `/.well-known/jwks.json` для прозрачной валидации
+- **Автоматический Refresh**: При 401 фронтенд обновляет токены
+
+### 🏗️ **Микросервисная архитектура**
+- **API Gateway**: Единая точка входа, маршрутизация, CORS
+- **Auth Service**: Домен аутентификации/авторизации
+- **Business Services**: Чистые от логики аутентификации
+- **Изолированные сети**: `backend` (internal), `public`
+
+### 📊 **Наблюдаемость**
+- **OpenTelemetry**: Трассировка запросов
+- **Prometheus**: Метрики производительности
+- **Correlation ID**: Сквозная трассировка
+- **Structured Logging**: Логи с контекстом
+
+### 🔄 **Поток данных**
+- **Логин**: Frontend → Gateway → Auth Service → PostgreSQL
+- **Защищённые запросы**: Frontend → Gateway → Business Service (с JWKS валидацией)
+- **Health Checks**: Docker Compose проверяет готовность сервисов
+- **Автоматический refresh**: Прозрачная ротация токенов
 
 ## API
 
-### POST /auth/signup
-Request:
+### 🔐 Аутентификация
 
+#### POST /auth/signup
+Регистрация нового пользователя
+
+**Request:**
 ```json
 {
   "username": "john",
@@ -113,13 +134,14 @@ Request:
 }
 ```
 
-Responses:
-- 200 OK — "User registered successfully."
-- 400 Bad Request — "Username is already taken."
+**Responses:**
+- `200 OK` — "User registered successfully."
+- `400 Bad Request` — "Username is already taken."
 
-### POST /auth/login
-Request:
+#### POST /auth/login
+Аутентификация пользователя
 
+**Request:**
 ```json
 {
   "username": "john",
@@ -127,83 +149,173 @@ Request:
 }
 ```
 
-Response 200 OK:
-
+**Response 200:**
 ```json
 {
-  "jwt": "<token>"
+  "jwt": "<access_token_rs256>"
+}
+```
+*Примечание:* Refresh token устанавливается в httpOnly cookie
+
+**Response 401:** "Invalid username or password."
+
+#### POST /auth/refresh
+Обновление токенов (ротация)
+
+**Response 200:**
+```json
+{
+  "jwt": "<new_access_token>"
 }
 ```
 
-Response 401: "Invalid username or password."
+#### POST /auth/logout
+Выход из системы (отзыв refresh token)
 
-### Доступ к защищённым маршрутам
-- Любые маршруты, не начинающиеся с `/auth/`, требуют заголовок `Authorization: Bearer <jwt>`.
-
-## Быстрый старт
-
-Предварительно установите: Docker + Docker Compose.
-
-1. Переменные окружения
-   - `DB_PASSWORD` — пароль пользователя `postgres` в Postgres (по умолчанию `postgres`).
-   - `JWT_SECRET` — строка ≥ 32 символов (HS256).
-
-2. Запуск всех сервисов
-
-   ```bash
-   docker compose up -d --build
-   ```
-
-3. Адреса
-   - Frontend: `http://localhost:3030`
-   - API Gateway: `http://localhost:8080`
-   - Auth Service: `http://localhost:8081`
-
-### Документация API (Swagger/OpenAPI)
-- JSON спецификация: `http://localhost:8081/v3/api-docs`
-- Swagger UI: `http://localhost:8081/swagger-ui/index.html`
-
-Примечание: доступ к Swagger через gateway по пути `/auth/swagger-ui/...` сейчас не работает, так как маршрут `/auth/**` не удаляет префикс. Чтобы открыть UI через gateway, добавьте фильтр удаления префикса (StripPrefix) в конфигурацию маршрута.
-
-4. Ручной запуск модулей (опционально)
-   - `api-gateway`/`auth-service`: `./gradlew bootRun`
-   - `frontend auth`: `npm install && npm run build` (сборка, рантайм — Nginx в Dockerfile)
-
-
-## Безопасность (важно)
-
-- Храните `JWT_SECRET` и `DB_PASSWORD` в переменных окружения/secret‑хранилищах.
-- HS256 требует длину секрета ≥ 32 символов.
-- Пароли хешируются `BCrypt` (в `auth-service`).
-- CORS в шлюзе настроен на dev: `http://localhost:3030`, `http://127.0.0.1:3030`.
-- Сессии отключены (stateless). CSRF отключён — для stateless API.
-- Health‑эндпоинты: `/actuator/health` на обоих back‑сервисах; compose использует healthchecks.
-
-
-## Структура проекта
-
-```
-api-gateway/
-├── src/main/java/ru/gateway/api_gateway/ (приложение + CorsConfig)
-├── src/main/resources/application-docker.yml (маршруты и логгинг)
-└── Dockerfile (мультистейдж)
-
-auth-service/
-├── src/main/java/ru/auth/
-│   ├── controller/AuthController.java (signup/login/me)
-│   ├── config/SecurityConfig.java (правила доступа)
-│   ├── config/JwtAuthenticationFilter.java (проверка JWT на своих эндпоинтах)
-│   ├── service/* (JwtService, CustomUserDetailsService, UserService)
-│   └── util/JwtUtil.java (HS256)
-├── src/main/resources/application-docker.yml (datasource, logging, actuator)
-└── Dockerfile (мультистейдж)
-
-frontend auth/
-├── src/* (Vite React)
-├── Dockerfile (Node build → Nginx)
-└── nginx.conf
-
-docker-compose.yml (Postgres, gateway, auth-service, frontend; сети, healthchecks)
+**Response 200:**
+```json
+{
+  "ok": true
+}
 ```
 
-Java 21, Spring Boot 3, Spring Security, Spring Data JPA, Spring Cloud Gateway (WebMVC), PostgreSQL, JJWT.
+### 🏢 Бизнес-сервисы
+
+#### GET /example-under-armor/me
+Пример защищённого эндпоинта
+
+**Headers:**
+```
+Authorization: Bearer <jwt>
+```
+
+**Response 200:**
+```json
+{
+  "username": "john",
+  "roles": ["ROLE_USER"]
+}
+```
+
+### 🔧 Системные эндпоинты
+
+#### GET /.well-known/jwks.json
+JWKS endpoint для валидации токенов
+
+**Response:**
+```json
+{
+  "keys": [
+    {
+      "kty": "RSA",
+      "use": "sig",
+      "alg": "RS256",
+      "kid": "<key_id>",
+      "n": "<modulus>",
+      "e": "<exponent>"
+    }
+  ]
+}
+```
+
+#### GET /actuator/health
+Health check эндпоинт
+
+**Response:**
+```json
+{
+  "status": "UP"
+}
+```
+
+## 🚀 Быстрый старт
+
+### 📋 Предварительные требования
+- Docker + Docker Compose
+- Java 21 (для локального запуска)
+
+### ⚙️ Настройка переменных окружения
+
+Создайте файл `.env` в корне проекта:
+```bash
+DB_PASSWORD=your_secure_password_here
+```
+
+### 🏃‍♂️ Запуск проекта
+
+```bash
+# Запуск всех сервисов
+docker compose up -d --build
+
+# Просмотр логов
+docker compose logs -f
+
+# Остановка
+docker compose down
+```
+
+### 🌐 Доступ к сервисам
+
+| Сервис | URL | Описание |
+|--------|-----|----------|
+| **Frontend** | http://localhost:3030 | React SPA |
+| **API Gateway** | http://localhost:8080 | Единая точка входа |
+| **Auth Service** | http://localhost:8081 | Сервис аутентификации |
+| **Example Service** | http://localhost:8082 | Пример бизнес-сервиса |
+| **PostgreSQL** | localhost:5432 | База данных |
+
+### 📖 Документация API
+
+| Сервис | Swagger UI | OpenAPI JSON |
+|--------|------------|--------------|
+| Auth Service | http://localhost:8081/swagger-ui | http://localhost:8081/v3/api-docs |
+| Example Service | http://localhost:8082/swagger-ui | http://localhost:8082/v3/api-docs |
+
+## 🔒 Безопасность (Production-Ready)
+
+### 🛡️ Аутентификация и Авторизация
+- **RS256 JWT**: Асимметричное шифрование (production-grade)
+- **Refresh Tokens**: В httpOnly cookies, хешируются SHA-256 в БД
+- **JWKS Endpoint**: `/.well-known/jwks.json` для прозрачной валидации
+- **Автоматическая ротация**: Refresh токены обновляются при каждом использовании
+
+### 🔐 Хранение секретов
+- **RSA ключи**: Генерируются автоматически при запуске (2048 бит)
+- **Пароли**: BCrypt хеширование
+- **Refresh токены**: SHA-256 хеши в БД (не plaintext)
+- **Переменные окружения**: Все секреты через `.env` файл
+
+### 🚨 Защита от атак
+- **Zero-Trust**: Каждый запрос требует JWT валидации
+- **Stateless**: Нет серверных сессий
+- **CSRF отключён**: Для stateless API
+- **CORS**: Строго настроен на frontend домен
+- **Health checks**: Docker Compose проверяет готовность сервисов
+
+### 📊 Мониторинг безопасности
+- **Correlation ID**: Сквозная трассировка запросов
+- **Structured logging**: Логи с контекстом для аудита
+- **OpenTelemetry**: Трассировка подозрительной активности
+- **Prometheus metrics**: Мониторинг производительности
+
+### ⚠️ Важные замечания
+- **RSA ключи** генерируются при каждом запуске (для demo)
+- **В production** используйте внешнее хранилище ключей (Vault, AWS KMS)
+- **HTTPS обязательна** для защиты JWT в трафике
+- **Регулярно обновляйте** refresh токены и ключи
+
+
+## 🛠️ Технологии
+
+- **Java 21** - JVM платформа
+- **Spring Boot 3** - Фреймворк приложений
+- **Spring Security** - Аутентификация и авторизация
+- **Spring Data JPA** - ORM для PostgreSQL
+- **Spring Cloud Gateway** - API Gateway
+- **JJWT** - JWT токены (RS256)
+- **OAuth2 Resource Server** - JWT валидация в сервисах
+- **PostgreSQL** - Реляционная база данных
+- **React + TypeScript** - Frontend
+- **Docker + Docker Compose** - Контейнеризация
+- **OpenTelemetry** - Распределённая трассировка
+- **Prometheus** - Метрики и мониторинг
