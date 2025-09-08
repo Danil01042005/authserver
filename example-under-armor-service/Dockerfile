@@ -4,7 +4,9 @@ WORKDIR /workspace
 COPY build.gradle settings.gradle ./
 COPY src src
 
-RUN gradle --no-daemon clean bootJar -x test
+RUN --mount=type=cache,target=/home/gradle/.gradle/caches \
+    --mount=type=cache,target=/home/gradle/.gradle/wrapper \
+    gradle --no-daemon bootJar -x test
 
 
 FROM eclipse-temurin:21-jre AS runtime
