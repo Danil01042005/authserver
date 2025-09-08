@@ -18,8 +18,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
 
-jwt:
-  secret: ${JWT_SECRET:this-is-a-very-long-and-secure-jwt-secret-key-32b-min}
+
 
 logging:
   level:

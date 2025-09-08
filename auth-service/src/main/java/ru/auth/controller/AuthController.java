@@ -4,23 +4,22 @@ package ru.auth.controller;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.validation.Valid;
-import ru.auth.model.AuthenticationRequest;
-import ru.auth.model.AuthenticationResponse;
+import ru.auth.dto.AuthenticationRequest;
+import ru.auth.dto.AuthenticationResponse;
 import ru.auth.service.JwtService;
 import ru.auth.service.UserService;
-import ru.auth.model.RefreshRequest;
+import ru.auth.dto.RefreshRequest;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.HttpHeaders;
 import jakarta.servlet.http.HttpServletRequest;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
+ 
 import org.springframework.web.bind.annotation.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+ 
 import ru.auth.service.RefreshTokenService;
 import org.springframework.web.bind.annotation.CookieValue;
 import java.time.Duration;
@@ -57,7 +56,13 @@ public class AuthController {
 					.header(HttpHeaders.SET_COOKIE, cookie.toString())
 					.body(new AuthenticationResponse(jwt));
 		} catch (Exception ex) {
-			return ResponseEntity.status(401).body("Invalid username or password.");
+			return ResponseEntity.status(401)
+					.header("X-Error-Code", "AUTH_INVALID_CREDENTIALS")
+					.header("X-Service", "auth-service")
+					.body(java.util.Map.of(
+							"code", "AUTH_INVALID_CREDENTIALS",
+							"message", "Invalid username or password"
+					));
 		}
 	}
 
@@ -67,11 +72,17 @@ public class AuthController {
 		@ApiResponse(responseCode = "200", description = "Пользователь зарегистрирован"),
 		@ApiResponse(responseCode = "400", description = "Имя пользователя занято")
 	})
-	public ResponseEntity<?> registerUser(@Valid @RequestBody ru.auth.model.SignupRequest req) {
+	public ResponseEntity<?> registerUser(@Valid @RequestBody ru.auth.dto.SignupRequest req) {
 		if (userService.findByUsername(req.getUsername()).isPresent()) {
-			return ResponseEntity.badRequest().body("Username is already taken.");
+			return ResponseEntity.badRequest()
+					.header("X-Error-Code", "AUTH_USERNAME_TAKEN")
+					.header("X-Service", "auth-service")
+					.body(java.util.Map.of(
+							"code", "AUTH_USERNAME_TAKEN",
+							"message", "Username is already taken"
+					));
 		}
-		ru.auth.model.User u = new ru.auth.model.User();
+		ru.auth.entity.User u = new ru.auth.entity.User();
 		u.setUsername(req.getUsername());
 		u.setPassword(req.getPassword());
 		userService.save(u);
@@ -119,7 +130,13 @@ public class AuthController {
 			refreshToken = body.getRefreshToken();
 		}
 		if (refreshToken == null || refreshToken.isBlank()) {
-			return ResponseEntity.status(401).body("Unauthorized: refresh token required");
+			return ResponseEntity.status(401)
+					.header("X-Error-Code", "AUTH_REFRESH_REQUIRED")
+					.header("X-Service", "auth-service")
+					.body(java.util.Map.of(
+							"code", "AUTH_REFRESH_REQUIRED",
+							"message", "Refresh token required"
+					));
 		}
 		try {
 			var newToken = refreshTokenService.rotateByValue(refreshToken);
@@ -130,7 +147,13 @@ public class AuthController {
 					.header(HttpHeaders.SET_COOKIE, cookie.toString())
 					.body(new AuthenticationResponse(jwt));
 		} catch (Exception ex) {
-			return ResponseEntity.status(401).body("Invalid refresh token");
+			return ResponseEntity.status(401)
+					.header("X-Error-Code", "AUTH_REFRESH_INVALID")
+					.header("X-Service", "auth-service")
+					.body(java.util.Map.of(
+							"code", "AUTH_REFRESH_INVALID",
+							"message", "Invalid refresh token"
+					));
 		}
 	}
 
@@ -157,22 +180,5 @@ public class AuthController {
 		return secure ? "None" : "Lax";
 	}
 
-	@GetMapping("/me")
-	@Operation(summary = "Текущий пользователь", description = "Информация о текущем пользователе",
-		security = { @SecurityRequirement(name = "bearerAuth") })
-	@ApiResponses({
-		@ApiResponse(responseCode = "200", description = "Успех"),
-		@ApiResponse(responseCode = "401", description = "Неавторизован")
-	})
-	public ResponseEntity<?> me(Authentication authentication) {
-		if (authentication == null || !authentication.isAuthenticated()) {
-			return ResponseEntity.status(401).body("Unauthorized");
-		}
-		var principal = authentication.getName();
-		var roles = authentication.getAuthorities().stream().map(GrantedAuthority::getAuthority).toList();
-		return ResponseEntity.ok(java.util.Map.of(
-				"username", principal,
-				"roles", roles
-		));
-	}
+
 }
