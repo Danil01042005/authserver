@@ -16,6 +16,16 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+          - id: auth-swagger-ui-index
+            uri: http://auth-service:8081
+            predicates:
+              - name: Path
+                args:
+                  pattern: /auth/swagger-ui/index.html
+            filters:
+              - name: StripPrefix
+                args:
+                  parts: 1
           - id: auth-api-docs
             uri: http://auth-service:8081
             predicates:
@@ -26,12 +36,24 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+          - id: auth-api-docs-root
+            uri: http://auth-service:8081
+            predicates:
+              - name: Path
+                args:
+                  pattern: /v3/api-docs/**
           - id: auth-service
             uri: http://auth-service:8081
             predicates:
               - name: Path
                 args:
                   pattern: /auth/**
+          - id: auth-jwks
+            uri: http://auth-service:8081
+            predicates:
+              - name: Path
+                args:
+                  pattern: /.well-known/**
           - id: example-under-armor-service
             uri: http://example-under-armor-service:8082
             predicates:

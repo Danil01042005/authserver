@@ -260,16 +260,15 @@ docker compose down
 |--------|-----|----------|
 | **Frontend** | http://localhost:3030 | React SPA |
 | **API Gateway** | http://localhost:8080 | Единая точка входа |
-| **Auth Service** | http://localhost:8081 | Сервис аутентификации |
-| **Example Service** | http://localhost:8082 | Пример бизнес-сервиса |
+| Auth Service (внутр.) | :8081 | Внутренний порт, ходим через gateway |
+| Example Service (внутр.) | :8082 | Внутренний порт, ходим через gateway |
 | **PostgreSQL** | localhost:5432 | База данных |
 
 ### 📖 Документация API
 
 | Сервис | Swagger UI | OpenAPI JSON |
 |--------|------------|--------------|
-| Auth Service | http://localhost:8081/swagger-ui | http://localhost:8081/v3/api-docs |
-| Example Service | http://localhost:8082/swagger-ui | http://localhost:8082/v3/api-docs |
+| Auth Service (через Gateway) | http://localhost:8080/auth/swagger-ui/index.html | http://localhost:8080/auth/v3/  api-docs |
 
 ## 🔒 Безопасность (Production-Ready)
 
