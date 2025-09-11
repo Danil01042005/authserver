@@ -1,12 +1,13 @@
 FROM gradle:8.8.0-jdk21 AS build
 WORKDIR /workspace
 
+ENV GRADLE_OPTS="-Dorg.gradle.daemon=false -Dorg.gradle.vfs.watch=false"
+ENV GRADLE_USER_HOME=/workspace/.gradle
+
 COPY build.gradle settings.gradle ./
 COPY src src
 
-RUN --mount=type=cache,target=/home/gradle/.gradle/caches \
-    --mount=type=cache,target=/home/gradle/.gradle/wrapper \
-    gradle --no-daemon bootJar -x test
+RUN gradle --no-daemon bootJar -x test
 
 
 FROM eclipse-temurin:21-jre AS runtime
