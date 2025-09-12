@@ -16,6 +16,9 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
           - id: auth-swagger-ui-index
             uri: http://auth-service:8081
             predicates:
@@ -26,6 +29,9 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
           - id: auth-api-docs
             uri: http://auth-service:8081
             predicates:
@@ -36,41 +42,84 @@ spring:
               - name: StripPrefix
                 args:
                   parts: 1
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
           - id: auth-api-docs-root
             uri: http://auth-service:8081
             predicates:
               - name: Path
                 args:
                   pattern: /v3/api-docs/**
+            filters:
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
+          - id: auth-actuator
+            uri: http://auth-service:8081
+            order: -100
+            predicates:
+              - name: Path
+                args:
+                  pattern: /auth/actuator/**
+            filters:
+              - name: StripPrefix
+                args:
+                  parts: 1
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
+          - id: auth-actuator-alias
+            uri: http://auth-service:8081
+            order: -110
+            predicates:
+              - name: Path
+                args:
+                  pattern: /auth/_actuator/**
+            filters:
+              - name: StripPrefix
+                args:
+                  parts: 1
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
           - id: auth-service
             uri: http://auth-service:8081
             predicates:
               - name: Path
                 args:
                   pattern: /auth/**
+            filters:
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
           - id: auth-jwks
             uri: http://auth-service:8081
             predicates:
               - name: Path
                 args:
                   pattern: /.well-known/**
+            filters:
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
           - id: example-under-armor-service
             uri: http://example-under-armor-service:8082
             predicates:
               - name: Path
                 args:
                   pattern: /example-under-armor/**
-          default-filters:
-            - name: DedupeResponseHeader
-              args:
-                name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
+            filters:
+              - name: DedupeResponseHeader
+                args:
+                  name: Access-Control-Allow-Credentials Access-Control-Allow-Origin
 server:
   port: 8080
 logging:
   level:
     root: INFO
-    org.springframework.cloud.gateway: INFO
-    org.springframework.web: INFO
+    "[org.springframework.cloud.gateway]": INFO
+    "[org.springframework.web]": INFO
 
 management:
   endpoints:
@@ -85,6 +134,26 @@ management:
     metrics:
       export:
         enabled: true
+        
+  metrics:
+    enable:
+      http:
+        server:
+          requests: true
+    distribution:
+      percentiles-histogram:
+        all: true
+        "[http.server.requests]": true
+      minimum-expected-value:
+        "[http.server.requests]": 1ms
+      slo:
+        "[http.server.requests]":
+          - 50ms
+          - 100ms
+          - 250ms
+          - 500ms
+          - 1s
+          - 2s
   tracing:
     sampling:
       probability: 1.0
