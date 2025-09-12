@@ -14,14 +14,23 @@
 - **Чистые бизнес‑сервисы**. `auth-service` отвечает за регистрацию/логин, а бизнес‑логика — отдельно.
 - **Единые настройки безопасности**. Заголовки, CORS и доступ — в одном месте и под контролем.
 - **Каждый запрос проверяется по JWT**. Не полагаемся на «доверенную сеть», проще масштабировать.
-- **Удобная наблюдаемость**. Сбираем метрики и трассировки, есть корреляционный ID для цепочек запросов.
+- **Удобная наблюдаемость**. Собираем метрики и трассировки, есть корреляционный ID для цепочек запросов.
 - **Быстрый запуск**. Одна команда, health‑checks и изолированные сети (`backend`/`public`).
 
 ## Расширяемость и потенциал
 
+- **api-gateway**: можно запускать несколько копий за балансировщиком.
+- **auth-service**: можно запускать несколько копий. Важно: ключи RSA и refresh‑токены должны храниться общими для всех копий (единое хранилище/секреты).
+- **example-under-armor-service**: также можно несколько копий.
+- **otel-collector/prometheus/grafana/jaeger**: в демо — по одной копии; в прод — настраивайте отказоустойчивость по документации.
+
+### Sticky и кэширование
+- Сервисы кэшируют публичные ключи из JWKS — меньше нагрузка на `auth-service`.
+- Gateway может кэшировать статические ответы и ограничивать размер запроса.
+
 - **Подключение новых сервисов (Gateway)**
   - добавляйте правила маршрутизации в `api-gateway/src/main/resources/application-docker.yml`
-  - пер‑роут политики: таймауты/ретраи, заголовки, size‑limits
+  - политики на маршруты: таймауты, повторные попытки, заголовки, лимиты размера
 - **Идентичность и авторизация (Auth‑service)**
   - роли/права через `SecurityConfig` (RBAC), возможность перейти к **scopes**/**claims‑based** (ABAC)
   - multi‑tenant: `tenant_id` в claims, фильтрация данных по тенанту
@@ -48,7 +57,7 @@
 
 ## Сквозной поток запроса: от фронта до сервиса
 
-1. **Фронтенд** бьётся в `api-gateway:8080`
+1. **Фронтенд** идёт на `api-gateway:8080`
 2. **Запросы `/auth/**`** проксируются в `auth-service:8081`:
    - `POST /auth/signup` — регистрация пользователя в БД
    - `POST /auth/login` — выдача JWT (RS256) + refresh token в httpOnly cookie
@@ -102,8 +111,8 @@
 - **Автоматический Refresh**: при 401 фронтенд прозрачно вызывает `/auth/refresh` и повторяет оригинальный запрос.
 
 ### 🔑 Потоки токенов
-- `POST /auth/login` → выдается `access` (JWT RS256) + ставится refresh cookie.
-- `POST /auth/refresh` → Atomically: новый `access` + ротация refresh cookie; старый refresh становится недействительным.
+- `POST /auth/login` → выдаётся `access` (JWT RS256) + ставится refresh cookie.
+- `POST /auth/refresh` → Атомарно: новый `access` + ротация refresh cookie; старый refresh становится недействительным.
 - `POST /auth/logout` → refresh помечается отозванным, чтобы предотвратить повторное использование.
 
 ### 🏗️ **Микросервисная архитектура**
@@ -126,114 +135,11 @@
 - **Health Checks**: Docker Compose проверяет готовность сервисов
 - **Автоматический refresh**: Прозрачная ротация токенов
 
-## API
+### 📖 Swagger / OpenAPI
 
-### 🔐 Аутентификация
-
-#### POST /auth/signup
-Регистрация нового пользователя
-
-**Request:**
-```json
-{
-  "username": "john",
-  "password": "strong-password"
-}
-```
-
-**Responses:**
-- `200 OK` — "User registered successfully."
-- `400 Bad Request` — "Username is already taken."
-
-#### POST /auth/login
-Аутентификация пользователя
-
-**Request:**
-```json
-{
-  "username": "john",
-  "password": "strong-password"
-}
-```
-
-**Response 200:**
-```json
-{
-  "jwt": "<access_token_rs256>"
-}
-```
-*Примечание:* Refresh token устанавливается в httpOnly cookie
-
-**Response 401:** "Invalid username or password."
-
-#### POST /auth/refresh
-Обновление токенов (ротация)
-
-**Response 200:**
-```json
-{
-  "jwt": "<new_access_token>"
-}
-```
-
-#### POST /auth/logout
-Выход из системы (отзыв refresh token)
-
-**Response 200:**
-```json
-{
-  "ok": true
-}
-```
-
-### 🏢 Бизнес-сервисы
-
-#### GET /example-under-armor/me
-Пример защищённого эндпоинта
-
-**Headers:**
-```
-Authorization: Bearer <jwt>
-```
-
-**Response 200:**
-```json
-{
-  "username": "john",
-  "roles": ["ROLE_USER"]
-}
-```
-
-### 🔧 Системные эндпоинты
-
-#### GET /.well-known/jwks.json
-JWKS endpoint для валидации токенов
-
-**Response:**
-```json
-{
-  "keys": [
-    {
-      "kty": "RSA",
-      "use": "sig",
-      "alg": "RS256",
-      "kid": "<key_id>",
-      "n": "<modulus>",
-      "e": "<exponent>"
-    }
-  ]
-}
-```
-
-#### GET /actuator/health
-Health check эндпоинт
-
-**Response:**
-```json
-{
-  "status": "UP"
-}
-```
+- Auth Service (через Gateway):
+  - Swagger UI: http://localhost:8080/auth/swagger-ui/index.html
+  - OpenAPI JSON: http://localhost:8080/auth/v3/api-docs
 
 ## 🚀 Быстрый старт
 
@@ -274,23 +180,6 @@ docker compose down
 | **Prometheus** | http://localhost:9090 | Метрики (scrape /actuator/prometheus) |
 | **Grafana** | http://localhost:3000 | Дашборды и графики (логин/пароль: admin/admin) |
 | **OpenTelemetry Collector** | http://localhost:4318/v1/traces | Приём OTLP/HTTP (без UI) |
-
-## ⚖️ Масштабирование
-
-- **api-gateway**: можно запускать несколько копий за балансировщиком.
-- **auth-service**: можно запускать несколько копий. Важно: ключи RSA и refresh‑токены должны храниться общими для всех копий (единое хранилище/секреты).
-- **example-under-armor-service**: также можно несколько копий.
-- **otel-collector/prometheus/grafana/jaeger**: в демо — по одной копии; в прод — настраивайте отказоустойчивость по документации.
-
-### Sticky и кэширование
-- Сервисы кэшируют публичные ключи из JWKS — меньше нагрузка на `auth-service`.
-- Gateway может кэшировать статические ответы и ограничивать размер запроса.
-
-### 📖 Swagger / OpenAPI
-
-- Auth Service (через Gateway):
-  - Swagger UI: http://localhost:8080/auth/swagger-ui/index.html
-  - OpenAPI JSON: http://localhost:8080/auth/v3/api-docs
 
 ## 🔒 Безопасность (Production-Ready)
 
