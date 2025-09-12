@@ -8,7 +8,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: http://auth-service:8081/.well-known/jwks.json
+          jwk-set-uri: http://api-gateway:8080/.well-known/jwks.json
 
 logging:
   level:
@@ -27,6 +27,31 @@ management:
     metrics:
       export:
         enabled: true
+  metrics:
+    enable:
+      http:
+        server:
+          requests: true
+    distribution:
+      percentiles-histogram:
+        all: true
+        "[http.server.requests]": true
+      minimum-expected-value:
+        "[http.server.requests]": 1ms
+      slo:
+        "[http.server.requests]":
+          - 50ms
+          - 100ms
+          - 250ms
+          - 500ms
+          - 1s
+          - 2s
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}
 
 springdoc:
   api-docs:
